@@ -5,6 +5,7 @@ import http from 'http';
 import { generateProfile } from './controllers/profile';
 import { generateBoard } from './controllers/board';
 import { generateImages } from './controllers/images';
+import { generateDecorations } from './controllers/decorations';
 import { triggerRebalance } from './controllers/director';
 import { setupLiveSocket } from './socket/live';
 
@@ -38,6 +39,9 @@ app.post('/api/generate/images', generateImages);
 
 // [API Trigger 4] AI Director (Demo Guarantee Rebalance)
 app.post('/api/director/rebalance', triggerRebalance);
+
+// [API Trigger 5] Decoration Generation (Nano Banana)
+app.post('/api/generate/decorations', generateDecorations);
 
 // Start server
 server.listen(PORT, () => {

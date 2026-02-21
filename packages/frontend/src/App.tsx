@@ -24,12 +24,24 @@ function App() {
         <div className="relative w-full h-screen overflow-hidden">
           <PixiGameRenderer />
 
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 right-4 z-20" style={{ marginTop: 0 }}>
             <button
               onClick={() => useFlowStore.getState().resetFlow()}
-              className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded text-sm text-white transition-colors shadow-lg"
+              style={{
+                padding: '8px 18px',
+                borderRadius: 12,
+                border: '2px solid #E74C8B',
+                background: 'rgba(255,255,255,0.9)',
+                color: '#E74C8B',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                backdropFilter: 'blur(4px)',
+                transition: 'all 0.2s ease',
+              }}
             >
-              タイトルへ戻る (諦める)
+              🏠 タイトルへ戻る
             </button>
           </div>
         </div>

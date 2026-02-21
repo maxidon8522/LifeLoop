@@ -1,5 +1,36 @@
 import { Request, Response } from 'express';
-import { ai, MODELS, SYSTEM_INSTRUCTION } from '../services/gemini';
+import { ai, MODELS } from '../services/gemini';
+
+const generateSingleImage = async (prompt: string, timeoutMs: number): Promise<string | null> => {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        const response = await ai.models.generateContent({
+            model: MODELS.IMAGE,
+            contents: prompt,
+            config: {
+                responseModalities: ['Image'],
+            }
+        });
+
+        clearTimeout(timeout);
+
+        const parts = response.candidates?.[0]?.content?.parts;
+        if (!parts) return null;
+
+        for (const part of parts) {
+            if (part.inlineData?.data) {
+                const mimeType = part.inlineData.mimeType || 'image/png';
+                return `data:${mimeType};base64,${part.inlineData.data}`;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('[Nano Banana] Single image generation failed:', error);
+        return null;
+    }
+};
 
 export const generateImages = async (req: Request, res: Response) => {
     try {
@@ -11,41 +42,61 @@ export const generateImages = async (req: Request, res: Response) => {
 
         console.log(`[Nano Banana] Generating images for style: ${artStylePrompt}`);
 
-        // Since this is a hackathon, we simulate a background job handling by resolving immediately
-        // or generating images on the fly. We'll use the Image API for just the world background
-        // and a few key tiles to stay within limits.
+        // 1. Generate board background image
+        const bgPrompt = `2.5D isometric game board background, bird's eye view, green grass field with pathways, cute and colorful style. Theme: ${artStylePrompt || "A fun adventure world"}. 16:9 aspect ratio. No text, no UI elements.`;
 
-        // Let's generate a background image
-        const bgPrompt = `Pixel art or 2.5d game background. Theme: ${artStylePrompt || "A generic hackathon venue"}. No text.`;
+        // 2. Generate tile icon images (limit to 6 unique types to stay within rate limits)
+        const uniqueTileTypes = new Map<string, { id: number; prompt: string }>();
+        for (const tile of tiles) {
+            if (!uniqueTileTypes.has(tile.type) && uniqueTileTypes.size < 6) {
+                uniqueTileTypes.set(tile.type, {
+                    id: tile.id,
+                    prompt: `Small 2.5D isometric game tile icon, cute flat illustration, ${tile.iconPrompt || tile.title}. No text, no background.`
+                });
+            }
+        }
 
-        // Asynchronous background job simulation for generating these
-        // Normally we would use ai.models.generateImages( ... )
-        // Wait, the SDK has generateImages:
-        /*
-        const response = await ai.models.generateImages({
-          model: MODELS.IMAGE,
-          prompt: bgPrompt,
-          config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/jpeg'
-          }
-        });
-        */
+        // Generate background + tile icons in parallel
+        const bgPromise = generateSingleImage(bgPrompt, 15000);
 
-        // For phase 3 we'll return mock URLs because actual image gen takes 10+ seconds and blocks the demo experience without a WebSocket ping
+        const tilePromises = Array.from(uniqueTileTypes.entries()).map(
+            async ([type, { id, prompt }]) => ({
+                type,
+                id,
+                imageData: await generateSingleImage(prompt, 15000)
+            })
+        );
+
+        const [bgResult, ...tileResults] = await Promise.all([
+            bgPromise,
+            ...tilePromises
+        ]);
+
+        // Map tile type images back to all tiles
+        const tileImageMap = new Map<string, string | null>();
+        for (const result of tileResults) {
+            tileImageMap.set(result.type, result.imageData);
+        }
+
+        const tileImages = tiles.map((t: any) => ({
+            id: t.id,
+            type: t.type,
+            imageData: tileImageMap.get(t.type) || null
+        }));
+
+        const successCount = tileImages.filter((t: any) => t.imageData).length;
+        console.log(`[Nano Banana] Background: ${bgResult ? 'OK' : 'FAILED'}, Tiles: ${successCount}/${tiles.length}`);
+
         res.json({
-            status: "processing",
+            status: bgResult ? 'ok' : 'partial',
             images: {
-                background: "https://placehold.co/1024x768?text=Generating+Background",
-                tiles: tiles.map((t: any) => ({
-                    id: t.id,
-                    url: `https://placehold.co/256x256?text=Tile+${t.id}`
-                }))
+                background: bgResult,
+                tiles: tileImages
             }
         });
 
     } catch (error) {
-        console.error("[Image API Error]", error);
+        console.error('[Image API Error]', error);
         res.status(500).json({ error: 'Failed to generate images' });
     }
 };

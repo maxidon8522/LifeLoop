@@ -9,7 +9,7 @@ export const Screen01Prepare = () => {
             // In Phase 2: await navigator.mediaDevices.getUserMedia({ audio: true });
             console.log("Mock: Mic permission granted");
             setScreen("LISTENING");
-        } catch (err) {
+        } catch {
             alert("マイクへのアクセスを許可してください");
         }
     };

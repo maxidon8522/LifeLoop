@@ -6,6 +6,7 @@ export interface PlayerProfile {
     lifestyle: string[];
     attributes: string[];
     position: number;
+    score: number;
 }
 
 export interface BoardTile {
@@ -35,14 +36,21 @@ export interface GameStore {
     board: BoardSpec | null;
     currentTurn: number;
     activePlayerIndex: number;
+    decorationImages: string[];
+    backgroundImage: string | null;
+    tileImages: Record<string, string>;
 
     addRawTranscript: (index: number, text: string) => void;
-    setPlayerProfile: (index: number, profile: Omit<PlayerProfile, 'position'>) => void;
+    setPlayerProfile: (index: number, profile: Omit<PlayerProfile, 'position' | 'score'>) => void;
     setBoard: (board: BoardSpec) => void;
     fallbackToTemplate: (fallbackData: BoardSpec) => void;
     movePlayer: (index: number, steps: number) => void;
+    addScore: (index: number, points: number) => void;
     nextTurn: () => void;
     resetGame: () => void;
+    setDecorationImages: (images: string[]) => void;
+    setBackgroundImage: (image: string) => void;
+    setTileImages: (images: Record<string, string>) => void;
 }
 
 export const useGameStore = create<GameStore>()((set) => ({
@@ -51,6 +59,9 @@ export const useGameStore = create<GameStore>()((set) => ({
     board: null,
     currentTurn: 1,
     activePlayerIndex: 0,
+    decorationImages: [],
+    backgroundImage: null,
+    tileImages: {},
 
     addRawTranscript: (index, text) => set((state) => ({
         rawTranscripts: { ...state.rawTranscripts, [index]: text }
@@ -58,7 +69,7 @@ export const useGameStore = create<GameStore>()((set) => ({
 
     setPlayerProfile: (index, profile) => set((state) => {
         const newPlayers = [...state.players];
-        newPlayers[index] = { ...profile, position: 0 };
+        newPlayers[index] = { ...profile, position: 0, score: 0 };
         return { players: newPlayers };
     }),
 
@@ -68,10 +79,14 @@ export const useGameStore = create<GameStore>()((set) => ({
 
     movePlayer: (index, steps) => set((state) => {
         const newPlayers = [...state.players];
+        const targetPlayer = newPlayers[index];
+        if (!targetPlayer) {
+            return state;
+        }
         const maxPos = (state.board?.tiles?.length || 1) - 1;
         newPlayers[index] = {
-            ...newPlayers[index],
-            position: Math.min(Math.max(newPlayers[index].position + steps, 0), maxPos)
+            ...targetPlayer,
+            position: Math.min(Math.max(targetPlayer.position + steps, 0), maxPos)
         };
         return { players: newPlayers };
     }),
@@ -84,7 +99,21 @@ export const useGameStore = create<GameStore>()((set) => ({
         return { activePlayerIndex: nextIdx };
     }),
 
+    addScore: (index, points) => set((state) => {
+        const newPlayers = [...state.players];
+        const player = newPlayers[index];
+        if (player) {
+            newPlayers[index] = { ...player, score: (player.score || 0) + points };
+        }
+        return { players: newPlayers };
+    }),
+
+    setDecorationImages: (images) => set({ decorationImages: images }),
+    setBackgroundImage: (image) => set({ backgroundImage: image }),
+    setTileImages: (images) => set({ tileImages: images }),
+
     resetGame: () => set({
-        rawTranscripts: {}, players: [], board: null, currentTurn: 1, activePlayerIndex: 0
+        rawTranscripts: {}, players: [], board: null, currentTurn: 1, activePlayerIndex: 0,
+        decorationImages: [], backgroundImage: null, tileImages: {}
     })
 }));

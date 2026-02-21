@@ -7,45 +7,151 @@ interface EventPopupProps {
     onClose: () => void;
 }
 
-export const EventPopup: React.FC<EventPopupProps> = ({ tile, onClose }) => {
-    const isGood = tile.type === "bonus" || tile.type === "rescue";
-    const isBad = tile.type === "penalty";
+export const EventPopup: React.FC<EventPopupProps> = ({ tile, player, onClose }) => {
+    const isGood = tile.type === 'bonus' || tile.type === 'rescue';
+    const isBad = tile.type === 'penalty';
+
+    const accentColor = isGood ? '#2ECC71' : isBad ? '#E74C8B' : '#5BC4F0';
+    const bgGradient = isGood
+        ? 'linear-gradient(135deg, #E8F8E8, #D4EDDA)'
+        : isBad
+            ? 'linear-gradient(135deg, #FDE8EE, #F8D7DA)'
+            : 'linear-gradient(135deg, #E8F0F8, #D1ECF1)';
+
+    const emoji = isGood ? '🎉' : isBad ? '⚡' : '💬';
+
+    const effectText = (() => {
+        const e = tile.effect;
+        switch (e.type) {
+            case 'advance': return `+${e.value} マス進む！`;
+            case 'retreat': return `-${e.value} マス戻る`;
+            case 'score': return `+${e.value} ポイント！`;
+            case 'swap': return 'プレイヤーと位置交換！';
+            case 'choice': return '選択イベント発生！';
+            default: return '効果なし';
+        }
+    })();
 
     return (
-        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm p-4">
-            <div className={`relative max-w-sm w-full bg-gray-800 rounded-2xl shadow-2xl p-6 border-2 flex flex-col items-center text-center animate-bounce-in ${isGood ? "border-green-500 shadow-green-500/20" :
-                isBad ? "border-red-500 shadow-red-500/20" : "border-blue-500 shadow-blue-500/20"
-                }`}>
-
-                <div className="text-4xl mb-4">
-                    {isGood ? "🎉" : isBad ? "⚠️" : "💬"}
+        <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(6px)',
+            padding: 16,
+        }}>
+            <div style={{
+                maxWidth: 380,
+                width: '100%',
+                background: bgGradient,
+                borderRadius: 24,
+                border: `3px solid ${accentColor}`,
+                boxShadow: `0 12px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.5) inset`,
+                padding: '28px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                animation: 'popIn 0.3s ease-out',
+            }}>
+                {/* Emoji */}
+                <div style={{ fontSize: 56, marginBottom: 12, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}>
+                    {emoji}
                 </div>
 
-                <h3 className="text-2xl font-bold text-white mb-2">
+                {/* Title */}
+                <h3 style={{
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: '#4A3728',
+                    marginBottom: 4,
+                }}>
                     {tile.title}
                 </h3>
 
-                <p className="text-gray-300 mb-6 bg-black/30 p-3 rounded-lg w-full min-h-[4rem] flex items-center justify-center">
-                    {tile.eventSeed}
-                </p>
-
-                <div className="flex flex-col w-full gap-2">
-                    <div className="text-sm text-gray-400 mb-4">
-                        効果: {tile.effect.type === "advance" && `+${tile.effect.value} マス進む`}
-                        {tile.effect.type === "retreat" && `-${tile.effect.value} マス戻る`}
-                        {tile.effect.type === "none" && "なし"}
-                    </div>
-
-                    <button
-                        onClick={onClose}
-                        className={`w-full py-3 rounded-xl font-bold text-white transition-all active:scale-95 ${isGood ? "bg-green-600 hover:bg-green-500" :
-                            isBad ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"
-                            }`}
-                    >
-                        OK
-                    </button>
+                {/* Player indicator */}
+                <div style={{
+                    fontSize: 12,
+                    color: '#8B7355',
+                    marginBottom: 16,
+                    fontWeight: 600,
+                }}>
+                    {player.displayName} のマス
                 </div>
+
+                {/* Event description */}
+                <div style={{
+                    background: 'rgba(255,255,255,0.7)',
+                    borderRadius: 14,
+                    padding: '14px 18px',
+                    width: '100%',
+                    minHeight: 60,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                    color: '#4A3728',
+                    fontSize: 15,
+                    lineHeight: 1.5,
+                    fontWeight: 500,
+                }}>
+                    {tile.eventSeed}
+                </div>
+
+                {/* Effect badge */}
+                <div style={{
+                    background: accentColor,
+                    borderRadius: 20,
+                    padding: '6px 20px',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    marginBottom: 20,
+                    boxShadow: `0 4px 12px ${accentColor}44`,
+                }}>
+                    {effectText}
+                </div>
+
+                {/* OK Button */}
+                <button
+                    onClick={onClose}
+                    style={{
+                        width: '100%',
+                        padding: '14px 0',
+                        borderRadius: 16,
+                        border: 'none',
+                        fontWeight: 800,
+                        fontSize: 18,
+                        cursor: 'pointer',
+                        background: accentColor,
+                        color: '#fff',
+                        boxShadow: `0 4px 16px ${accentColor}40`,
+                        transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                        (e.target as HTMLButtonElement).style.transform = 'scale(1.02)';
+                        (e.target as HTMLButtonElement).style.opacity = '0.9';
+                    }}
+                    onMouseLeave={e => {
+                        (e.target as HTMLButtonElement).style.transform = 'scale(1)';
+                        (e.target as HTMLButtonElement).style.opacity = '1';
+                    }}
+                >
+                    OK
+                </button>
             </div>
+
+            {/* Pop-in animation */}
+            <style>{`
+                @keyframes popIn {
+                    0% { transform: scale(0.8); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+            `}</style>
         </div>
     );
 };

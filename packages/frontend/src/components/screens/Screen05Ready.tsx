@@ -1,11 +1,23 @@
 import { useFlowStore } from '../../store/useFlowStore';
 import { useGameStore } from '../../store/useGameStore';
+import { fallbackBoard } from '../../lib/fallbackBoard';
 
 export const Screen05Ready = () => {
     const { setScreen } = useFlowStore();
-    const { board } = useGameStore();
+    const { board, players, fallbackToTemplate, setPlayerProfile } = useGameStore();
 
     const handleStartGame = () => {
+        if (!board?.tiles?.length) {
+            fallbackToTemplate(fallbackBoard);
+        }
+        if (players.length === 0) {
+            setPlayerProfile(0, {
+                displayName: "Player 1",
+                tags: ["Default"],
+                lifestyle: ["Standard"],
+                attributes: ["Explorer"]
+            });
+        }
         setScreen("PLAYING");
     };
 

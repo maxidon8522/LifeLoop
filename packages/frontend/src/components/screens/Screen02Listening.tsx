@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
 import { useGameStore } from '../../store/useGameStore';
 import { useAudioRecorder } from '../../lib/useAudioRecorder';
@@ -17,6 +17,8 @@ export const Screen02Listening = () => {
     const { isRecording, startRecording, stopRecording, liveTranscription } = useAudioRecorder(
         'ws://localhost:3001/live'
     );
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
 
     // 表示用トランスクリプト
     const transcript = isLiveMode && liveTranscription ? liveTranscription : mockTranscript;
@@ -31,6 +33,12 @@ export const Screen02Listening = () => {
     }, [isLiveMode, isRecording, startRecording, stopRecording]);
 
     const handleStop = async () => {
+        if (isSubmittingRef.current) {
+            return;
+        }
+        isSubmittingRef.current = true;
+        setIsSubmitting(true);
+
         try {
             if (isLiveMode) {
                 stopRecording();
@@ -64,6 +72,9 @@ export const Screen02Listening = () => {
                 attributes: ["サバイバー"]
             });
             setScreen("NEXT_PROMPT");
+        } finally {
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
         }
     };
 
@@ -78,6 +89,7 @@ export const Screen02Listening = () => {
                         type="checkbox"
                         className="sr-only peer"
                         checked={isLiveMode}
+                        disabled={isSubmitting}
                         onChange={() => setIsLiveMode(!isLiveMode)}
                     />
                     <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
@@ -100,9 +112,13 @@ export const Screen02Listening = () => {
 
             <button
                 onClick={handleStop}
-                className="w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xl border border-white/20 transition-all active:scale-95"
+                disabled={isSubmitting}
+                className={`w-full py-4 rounded-2xl font-bold text-xl border transition-all active:scale-95 ${isSubmitting
+                        ? "bg-white/5 border-white/10 text-white/50 cursor-not-allowed"
+                        : "bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    }`}
             >
-                録音を終了する
+                {isSubmitting ? "プロフィール生成中..." : "録音を終了する"}
             </button>
         </div>
     );

@@ -41,6 +41,7 @@ const BASE_TEMPLATE_TILES: Omit<BoardTile, 'id'>[] = [
 
 const TILE_TYPES: TileType[] = ["normal", "bonus", "penalty", "event", "rescue", "goal"];
 const EFFECT_TYPES: EffectType[] = ["advance", "retreat", "score", "swap", "choice", "none"];
+const BOARD_GEN_TIMEOUT_MS = 5000;
 
 const clampTileCount = (value: number) => Math.min(24, Math.max(8, value));
 
@@ -201,7 +202,7 @@ export const generateBoard = async (req: Request, res: Response) => {
     `;
 
         const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('TIMEOUT')), 2500);
+            setTimeout(() => reject(new Error('TIMEOUT')), BOARD_GEN_TIMEOUT_MS);
         });
 
         try {
@@ -229,7 +230,7 @@ export const generateBoard = async (req: Request, res: Response) => {
 
         } catch (genError: any) {
             if (genError.message === 'TIMEOUT') {
-                console.warn("[Text API] Board generation timed out (2.5s)!");
+                console.warn(`[Text API] Board generation timed out (${BOARD_GEN_TIMEOUT_MS}ms)!`);
                 return res.status(206).json(fallbackBoard);
             }
             console.error("[Text API] Board generation failed, using fallback:", genError);
