@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
 import { useGameStore } from '../../store/useGameStore';
 import { useAudioRecorder } from '../../lib/useAudioRecorder';
+import { PreGameFrame } from './PreGameFrame';
 
 export const Screen02Listening = () => {
     const { setScreen, currentPlayerIndex } = useFlowStore();
@@ -79,47 +80,49 @@ export const Screen02Listening = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 max-w-2xl mx-auto w-full relative">
+        <PreGameFrame
+            badge="LISTENING"
+            title={`Player ${currentPlayerIndex + 1} の音声を収集中`}
+            description="話した内容からプレイヤープロフィールを生成します。"
+            rightSlot={(
+                <button
+                    type="button"
+                    onClick={() => setIsLiveMode((prev) => !prev)}
+                    disabled={isSubmitting}
+                    className={`rounded-xl border-2 px-4 py-2 text-sm font-bold shadow-md transition ${isSubmitting
+                            ? 'cursor-not-allowed border-[#B8A98E] bg-[#F2E8CF] text-[#9A8B74]'
+                            : 'border-[#DAA520] bg-[#FFF8DC] text-[#4A3728] hover:bg-[#FFF3C2]'
+                        }`}
+                >
+                    Live API 録音: {isLiveMode ? 'ON' : 'OFF'}
+                </button>
+            )}
+        >
+            <div className="w-full space-y-5 text-left">
+                <div className="flex items-center gap-3 rounded-2xl border-2 border-[#DAA520] bg-white/75 px-5 py-3">
+                    <span className={`h-3 w-3 rounded-full ${isLiveMode ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`} />
+                    <p className="text-lg font-bold text-[#4A3728]">
+                        {isLiveMode ? 'Listening... (Live)' : 'Mock Transcript'} / Player {currentPlayerIndex + 1}
+                    </p>
+                </div>
 
-            {/* 開発時用トグルスイッチ */}
-            <div className="absolute top-4 right-4 bg-black/50 p-3 rounded-xl border border-white/20 flex flex-col items-end z-20">
-                <label className="flex items-center cursor-pointer mb-1">
-                    <span className="mr-3 text-sm font-bold text-gray-300">Live API 録音</span>
-                    <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isLiveMode}
-                        disabled={isSubmitting}
-                        onChange={() => setIsLiveMode(!isLiveMode)}
-                    />
-                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                </label>
-                <span className="text-xs text-blue-400">ONにすると本番の音声録音フックが作動します</span>
+                <div className="max-h-[300px] overflow-y-auto rounded-2xl border-2 border-[#CBAE5A] bg-[#FFFDF4] p-5">
+                    <p className="text-lg leading-relaxed text-[#5D4A35]">
+                        {transcript}
+                    </p>
+                </div>
+
+                <button
+                    onClick={handleStop}
+                    disabled={isSubmitting}
+                    className={`w-full rounded-full border-2 px-8 py-4 text-xl font-black text-white shadow-[0_8px_20px_rgba(255,107,53,0.32)] transition-transform active:scale-95 ${isSubmitting
+                            ? "cursor-not-allowed border-[#999] bg-[#b8b8b8] shadow-none"
+                            : "border-[#4A3728]/15 bg-gradient-to-r from-[#FF6B35] to-[#FFD700] hover:scale-[1.01]"
+                        }`}
+                >
+                    {isSubmitting ? "プロフィール生成中..." : "録音を終了する"}
+                </button>
             </div>
-
-            <div className="w-full flex items-center justify-between mb-8 mt-12">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full animate-pulse ${isLiveMode ? 'bg-red-500' : 'bg-gray-400'}`} />
-                    {isLiveMode ? "Listening... (Live)" : "MOCK (Player"} {currentPlayerIndex + 1})
-                </h2>
-            </div>
-
-            <div className="flex-1 w-full bg-black/30 rounded-2xl border border-white/10 p-6 mb-8 overflow-y-auto">
-                <p className="text-white/80 leading-relaxed text-lg">
-                    {transcript}
-                </p>
-            </div>
-
-            <button
-                onClick={handleStop}
-                disabled={isSubmitting}
-                className={`w-full py-4 rounded-2xl font-bold text-xl border transition-all active:scale-95 ${isSubmitting
-                        ? "bg-white/5 border-white/10 text-white/50 cursor-not-allowed"
-                        : "bg-white/10 hover:bg-white/20 text-white border-white/20"
-                    }`}
-            >
-                {isSubmitting ? "プロフィール生成中..." : "録音を終了する"}
-            </button>
-        </div>
+        </PreGameFrame>
     );
 };

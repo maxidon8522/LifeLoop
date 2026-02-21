@@ -1,4 +1,5 @@
 import { useFlowStore } from '../../store/useFlowStore';
+import { PreGameFrame } from './PreGameFrame';
 
 export const Screen01Prepare = () => {
     const { setScreen, currentPlayerIndex } = useFlowStore();
@@ -15,22 +16,23 @@ export const Screen01Prepare = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-            <h2 className="text-3xl font-bold mb-6">
-                Player {currentPlayerIndex + 1} の自己紹介
-            </h2>
-            <p className="text-lg text-gray-300 mb-10 max-w-md">
-                「名前・趣味・最近ハマっていること」などを自由にマイクに向かって話してください。<br />
-                LifeLoop AIがあなたの特徴を抽出し、ゲームの舞台を作り上げます。
-            </p>
-
+        <PreGameFrame
+            badge="PREPARE"
+            title={`Player ${currentPlayerIndex + 1} の自己紹介`}
+            description={(
+                <>
+                    「名前・趣味・最近ハマっていること」などを自由にマイクへ話してください。<br />
+                    LifeLoop AIが特徴を抽出し、盤面のイベントに反映します。
+                </>
+            )}
+        >
             <button
                 onClick={handleStartRecording}
-                className="px-8 py-4 bg-red-500 hover:bg-red-400 text-white rounded-full font-bold text-xl flex items-center gap-2 shadow-lg shadow-red-500/30 transition-all hover:scale-105"
+                className="inline-flex items-center gap-2 rounded-full border-2 border-[#4A3728]/15 bg-gradient-to-r from-[#FF6B35] to-[#FF8A57] px-10 py-4 text-2xl font-black text-white shadow-[0_8px_20px_rgba(255,107,53,0.35)] transition-transform hover:scale-105 active:scale-95"
             >
                 <span className="w-4 h-4 rounded-full bg-white animate-pulse" />
                 録音を開始する
             </button>
-        </div>
+        </PreGameFrame>
     );
 };

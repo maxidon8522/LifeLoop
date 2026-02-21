@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
 import { useGameStore, type BoardSpec } from '../../store/useGameStore';
 import { fallbackBoard } from '../../lib/fallbackBoard';
+import { PreGameFrame } from './PreGameFrame';
 
 const BOARD_REQUEST_TIMEOUT_MS = 5000;
 
@@ -82,21 +83,18 @@ export const Screen03NextPrompt = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-            <h2 className="text-3xl font-bold mb-8">
-                Player {currentPlayerIndex + 1} の登録が完了しました！
-            </h2>
-            <p className="text-gray-400 mb-12">
-                続けて次のプレイヤーの自己紹介を録音しますか？
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+        <PreGameFrame
+            badge="CONFIRM"
+            title={`Player ${currentPlayerIndex + 1} の登録が完了しました`}
+            description="次のプレイヤーに交代するか、このまま盤面生成へ進みます。"
+        >
+            <div className="mx-auto flex w-full max-w-xl flex-col gap-4 sm:flex-row">
                 <button
                     onClick={handleNextPlayer}
                     disabled={isSubmitting}
-                    className={`flex-1 py-4 rounded-2xl font-bold border transition-transform active:scale-95 ${isSubmitting
-                            ? "bg-white/5 border-white/10 text-white/50 cursor-not-allowed"
-                            : "bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    className={`flex-1 rounded-2xl border-2 px-5 py-4 text-lg font-black transition-transform active:scale-95 ${isSubmitting
+                            ? "cursor-not-allowed border-[#B8A98E] bg-[#F2E8CF] text-[#9A8B74]"
+                            : "border-[#CBAE5A] bg-[#FFF8DC] text-[#4A3728] hover:bg-[#FFF3C2]"
                         }`}
                 >
                     はい（次の人へ交代）
@@ -104,14 +102,14 @@ export const Screen03NextPrompt = () => {
                 <button
                     onClick={handleFinish}
                     disabled={isSubmitting}
-                    className={`flex-1 py-4 rounded-2xl font-bold transition-transform active:scale-95 shadow-lg ${isSubmitting
-                            ? "bg-gray-700 text-white/60 cursor-not-allowed shadow-none"
-                            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white shadow-blue-500/30"
+                    className={`flex-1 rounded-2xl border-2 px-5 py-4 text-lg font-black text-white transition-transform active:scale-95 shadow-lg ${isSubmitting
+                            ? "cursor-not-allowed border-[#999] bg-[#b8b8b8] shadow-none"
+                            : "border-[#4A3728]/15 bg-gradient-to-r from-[#FF6B35] to-[#FFD700] shadow-[0_8px_20px_rgba(255,107,53,0.35)] hover:scale-[1.01]"
                         }`}
                 >
                     {isSubmitting ? "生成リクエスト送信中..." : "完了して開始"}
                 </button>
             </div>
-        </div>
+        </PreGameFrame>
     );
 };

@@ -1,20 +1,29 @@
+import { PreGameFrame } from './PreGameFrame';
+
 export const Screen04Generating = () => {
-    // Use length of players or any other stat from GameStore if desired
-
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-            <div className="relative w-24 h-24 mb-8">
-                <div className="absolute inset-0 rounded-full border-t-4 border-blue-500 animate-spin"></div>
-                <div className="absolute inset-2 rounded-full border-r-4 border-emerald-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        <PreGameFrame
+            badge="GENERATING"
+            title="世界を生成中..."
+            description={(
+                <>
+                    AI Director がプレイヤー情報を分析し、<br />
+                    盤面とイベントを構築しています。
+                </>
+            )}
+        >
+            <div className="flex flex-col items-center">
+                <div className="relative mb-7 h-24 w-24">
+                    <div className="absolute inset-0 animate-spin rounded-full border-[6px] border-transparent border-t-[#FF6B35] border-r-[#FFD700]" />
+                    <div
+                        className="absolute inset-3 animate-spin rounded-full border-[5px] border-transparent border-l-[#DAA520] border-b-[#C03070]"
+                        style={{ animationDirection: 'reverse', animationDuration: '1.1s' }}
+                    />
+                </div>
+                <p className="text-sm font-bold tracking-wider text-[#8B7355]">
+                    Please wait...
+                </p>
             </div>
-
-            <h2 className="text-3xl font-bold mb-4 animate-pulse">
-                世界を生成中...
-            </h2>
-            <p className="text-gray-400">
-                AI Director がプレイヤーの個性を分析し、<br />
-                特別なゲーム盤面を組み上げています。
-            </p>
-        </div>
+        </PreGameFrame>
     );
 };
