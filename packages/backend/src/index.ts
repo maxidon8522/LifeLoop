@@ -5,6 +5,7 @@ import http from 'http';
 import { generateProfile } from './controllers/profile';
 import { generateBoard } from './controllers/board';
 import { generateImages } from './controllers/images';
+import { triggerRebalance } from './controllers/director';
 import { setupLiveSocket } from './socket/live';
 
 // Load environment variables
@@ -34,6 +35,9 @@ app.post('/api/generate/board', generateBoard);
 
 // [API Trigger 3] Image Generation (Nano Banana)
 app.post('/api/generate/images', generateImages);
+
+// [API Trigger 4] AI Director (Demo Guarantee Rebalance)
+app.post('/api/director/rebalance', triggerRebalance);
 
 // Start server
 server.listen(PORT, () => {

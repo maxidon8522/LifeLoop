@@ -1,0 +1,65 @@
+{
+    "status": "fallback",
+    "world": {
+        "theme": "ハッカソンの危機",
+        "tone": "ドタバタ",
+        "artStylePrompt": "A messy hackathon venue with empty pizza boxes and glowing screens"
+    },
+    "tiles": [
+        {
+            "id": 1,
+            "title": "Wi-Fi断線",
+            "type": "event",
+            "eventSeed": "The Wi-Fi suddenly drops and everyone panics",
+            "effect": {
+                "type": "retreat",
+                "value": 1
+            },
+            "iconPrompt": "Broken Wi-Fi signal icon"
+        },
+        {
+            "id": 2,
+            "title": "締め切り迫る",
+            "type": "normal",
+            "eventSeed": "Only 30 minutes left on the clock!",
+            "effect": {
+                "type": "none",
+                "value": 0
+            },
+            "iconPrompt": "A ticking clock showing 30 minutes"
+        },
+        {
+            "id": 3,
+            "title": "神のデバッグ",
+            "type": "bonus",
+            "eventSeed": "A teammate finds the bug in 5 seconds",
+            "effect": {
+                "type": "advance",
+                "value": 3
+            },
+            "iconPrompt": "Glowing fast bug fixing hands"
+        },
+        {
+            "id": 4,
+            "title": "眠気の限界",
+            "type": "penalty",
+            "eventSeed": "Someone falls asleep on the keyboard",
+            "effect": {
+                "type": "retreat",
+                "value": 2
+            },
+            "iconPrompt": "ZZZ sleeping icon over a laptop"
+        },
+        {
+            "id": 5,
+            "title": "ピッチ開始",
+            "type": "goal",
+            "eventSeed": "It's time to pitch the project!",
+            "effect": {
+                "type": "none",
+                "value": 0
+            },
+            "iconPrompt": "Stage with a microphone"
+        }
+    ]
+}
