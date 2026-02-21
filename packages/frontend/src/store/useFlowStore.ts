@@ -9,20 +9,25 @@ export type ScreenPhase =
     | "READY"           // 05: 生成完了
     | "PLAYING";        // すごろくプレイ
 
+export type AppLanguage = "ja" | "en";
+
 interface FlowStore {
     currentScreen: ScreenPhase;
     currentPlayerIndex: number;
     isLoading: boolean;
+    language: AppLanguage;
     setScreen: (screen: ScreenPhase) => void;
     nextPlayer: () => void;
     resetFlow: () => void;
     setLoading: (loading: boolean) => void;
+    setLanguage: (language: AppLanguage) => void;
 }
 
 export const useFlowStore = create<FlowStore>()((set) => ({
     currentScreen: "TITLE",
     currentPlayerIndex: 0,
     isLoading: false,
+    language: "ja",
 
     setScreen: (screen) => set({ currentScreen: screen }),
     nextPlayer: () => set((state) => ({
@@ -30,5 +35,6 @@ export const useFlowStore = create<FlowStore>()((set) => ({
         currentScreen: "LISTENING"
     })),
     resetFlow: () => set({ currentScreen: "TITLE", currentPlayerIndex: 0, isLoading: false }),
-    setLoading: (loading) => set({ isLoading: loading })
+    setLoading: (loading) => set({ isLoading: loading }),
+    setLanguage: (language) => set({ language })
 }));

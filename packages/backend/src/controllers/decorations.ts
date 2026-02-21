@@ -23,7 +23,7 @@ const buildDecorationPrompts = (req: DecorationRequest): string[] => {
         ? `プレイヤーの興味: ${uniqueTags.join(', ')}`
         : '';
 
-    const styleBase = `2.5D isometric game decoration sprite, flat illustration style, white/transparent background, cute and colorful, ${req.artStylePrompt || req.theme}`;
+    const styleBase = `2.5D isometric game decoration sprite, flat illustration style, transparent alpha background only, no checkerboard pattern, no frame, no border, object centered, cute and colorful, ${req.artStylePrompt || req.theme}`;
 
     return [
         `${styleBase}. A small cozy building or house inspired by: ${req.theme}. ${tagHint}. No text.`,

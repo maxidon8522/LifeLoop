@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as PIXI from 'pixi.js';
 import { useGameStore } from '../../store/useGameStore';
 import type { BoardTile } from '../../store/useGameStore';
+import { useFlowStore } from '../../store/useFlowStore';
+import type { AppLanguage } from '../../store/useFlowStore';
 import { EventPopup } from './EventPopup';
-import { fallbackBoard } from '../../lib/fallbackBoard';
+import { getFallbackBoard } from '../../lib/fallbackBoard';
 
 /* ─── Color Palette ─── */
 const TILE_COLORS: Record<string, { top: number; side: number; icon: string }> = {
@@ -30,27 +32,104 @@ const COLS = 6;
 const GAP_X = 16;
 const GAP_Y = 16;
 
-const summarizeTileAction = (tile?: BoardTile): string => {
-    if (!tile) return 'イベント';
+const summarizeTileAction = (language: AppLanguage, tile?: BoardTile): string => {
+    const isEn = language === 'en';
+    if (!tile) return isEn ? 'Event' : 'イベント';
     switch (tile.effect.type) {
         case 'advance':
-            return `${tile.effect.value}マス進む`;
+            return isEn ? `${tile.effect.value} tiles forward` : `${tile.effect.value}マス進む`;
         case 'retreat':
-            return `${tile.effect.value}マス戻る`;
+            return isEn ? `${tile.effect.value} tiles back` : `${tile.effect.value}マス戻る`;
         case 'score':
-            return `スコア+${tile.effect.value}`;
+            return isEn ? `Score +${tile.effect.value}` : `スコア+${tile.effect.value}`;
         case 'swap':
-            return '位置を交換';
+            return isEn ? 'Swap positions' : '位置を交換';
         case 'choice':
-            return '選択イベント';
+            return isEn ? 'Choice event' : '選択イベント';
         case 'none':
         default:
-            return tile.type === 'goal' ? 'ゴール!' : '変化なし';
+            return tile.type === 'goal'
+                ? (isEn ? 'Goal!' : 'ゴール!')
+                : (isEn ? 'No change' : '変化なし');
     }
 };
 
 type DecorationResponse = {
     decorations?: Array<{ imageData?: string }>;
+};
+
+const isLikelyBackgroundPixel = (r: number, g: number, b: number, a: number): boolean => {
+    if (a < 8) return true;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const saturation = max === 0 ? 0 : (max - min) / max;
+    const brightness = (r + g + b) / 3;
+    return saturation < 0.18 && brightness > 165;
+};
+
+const makeTransparentDataUrl = async (src: string): Promise<string> => {
+    try {
+        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('image load failed'));
+            img.src = src;
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx || canvas.width === 0 || canvas.height === 0) return src;
+
+        ctx.drawImage(image, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const { data, width, height } = imageData;
+
+        const visited = new Uint8Array(width * height);
+        const queue: number[] = [];
+
+        const enqueueIfBackground = (x: number, y: number) => {
+            if (x < 0 || y < 0 || x >= width || y >= height) return;
+            const idx = y * width + x;
+            if (visited[idx] === 1) return;
+
+            const p = idx * 4;
+            if (!isLikelyBackgroundPixel(data[p], data[p + 1], data[p + 2], data[p + 3])) return;
+            visited[idx] = 1;
+            queue.push(idx);
+        };
+
+        for (let x = 0; x < width; x++) {
+            enqueueIfBackground(x, 0);
+            enqueueIfBackground(x, height - 1);
+        }
+        for (let y = 1; y < height - 1; y++) {
+            enqueueIfBackground(0, y);
+            enqueueIfBackground(width - 1, y);
+        }
+
+        while (queue.length > 0) {
+            const idx = queue.pop();
+            if (idx === undefined) break;
+
+            const x = idx % width;
+            const y = Math.floor(idx / width);
+            enqueueIfBackground(x - 1, y);
+            enqueueIfBackground(x + 1, y);
+            enqueueIfBackground(x, y - 1);
+            enqueueIfBackground(x, y + 1);
+        }
+
+        for (let i = 0; i < visited.length; i++) {
+            if (visited[i] === 1) data[i * 4 + 3] = 0;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        return canvas.toDataURL('image/png');
+    } catch {
+        return src;
+    }
 };
 
 /* ─── Coordinate helper: S-shape path layout ─── */
@@ -156,6 +235,8 @@ export const PixiGameRenderer = () => {
     const [diceResult, setDiceResult] = useState<number | null>(null);
     const [pixiError, setPixiError] = useState<string | null>(null);
     const [decoLoading, setDecoLoading] = useState(false);
+    const { language } = useFlowStore();
+    const isEn = language === 'en';
 
     const appRef = useRef<PIXI.Application | null>(null);
     const tokensRef = useRef<PIXI.Container[]>([]);
@@ -191,7 +272,8 @@ export const PixiGameRenderer = () => {
                 const images = (data.decorations || [])
                     .filter((d): d is { imageData: string } => typeof d.imageData === 'string' && d.imageData.length > 0)
                     .map((d) => d.imageData);
-                setDecorationImages(images);
+                const transparentImages = await Promise.all(images.map((img) => makeTransparentDataUrl(img)));
+                setDecorationImages(transparentImages);
             } catch (e) {
                 console.error('[Deco] Failed to fetch decorations:', e);
             } finally {
@@ -250,7 +332,11 @@ export const PixiGameRenderer = () => {
                 });
                 const data = await res.json();
                 if (data.action && data.details) {
-                    alert(`[AI Director 介入!]\n${data.details.title}\n${data.details.description}`);
+                    alert(
+                        isEn
+                            ? `[AI Director Intervention!]\n${data.details.title}\n${data.details.description}`
+                            : `[AI Director 介入!]\n${data.details.title}\n${data.details.description}`
+                    );
                 }
             } catch (e) {
                 console.error('Director failed', e);
@@ -265,15 +351,15 @@ export const PixiGameRenderer = () => {
             return;
         }
         if (!totalTiles) {
-            fallbackToTemplate(fallbackBoard);
+            fallbackToTemplate(getFallbackBoard(language));
             return;
         }
         if (players.length === 0) {
             setPlayerProfile(0, {
                 displayName: 'Player 1',
-                tags: ['Default'],
-                lifestyle: ['Standard'],
-                attributes: ['Explorer'],
+                tags: [isEn ? 'Default' : 'デフォルト'],
+                lifestyle: [isEn ? 'Standard' : '標準'],
+                attributes: [isEn ? 'Explorer' : '探索者'],
             });
             return;
         }
@@ -389,7 +475,7 @@ export const PixiGameRenderer = () => {
                 boardContainer.addChild(numText);
 
                 // White text: tile title + action
-                const titleText = new PIXI.Text(tileData?.title || `マス${i + 1}`, {
+                const titleText = new PIXI.Text(tileData?.title || (isEn ? `Tile ${i + 1}` : `マス${i + 1}`), {
                     fontFamily: 'Arial',
                     fontSize: 10,
                     fill: 0xFFFFFF,
@@ -403,7 +489,7 @@ export const PixiGameRenderer = () => {
                 titleText.y = pos.y + 28;
                 boardContainer.addChild(titleText);
 
-                const effectText = new PIXI.Text(summarizeTileAction(tileData), {
+                const effectText = new PIXI.Text(summarizeTileAction(language, tileData), {
                     fontFamily: 'Arial',
                     fontSize: 9,
                     fill: 0xFFFFFF,
@@ -419,7 +505,7 @@ export const PixiGameRenderer = () => {
 
         } catch (error) {
             console.error('[PIXI] Failed to initialize renderer', error);
-            setPixiError('描画の初期化に失敗しました。');
+            setPixiError(isEn ? 'Failed to initialize renderer.' : '描画の初期化に失敗しました。');
         }
 
         return () => {
@@ -429,7 +515,7 @@ export const PixiGameRenderer = () => {
             decoContainerRef.current = null;
             container.innerHTML = '';
         };
-    }, [board, totalTiles, tiles, players.length, fallbackToTemplate, setPlayerProfile]);
+    }, [board, totalTiles, tiles, players.length, fallbackToTemplate, setPlayerProfile, language, isEn]);
 
     /* ─── Load Nanobanana decoration sprites ─── */
     useEffect(() => {
@@ -447,13 +533,13 @@ export const PixiGameRenderer = () => {
             try {
                 const texture = PIXI.Texture.from(dataUrl);
                 const sprite = new PIXI.Sprite(texture);
-                sprite.width = 64;
-                sprite.height = 64;
+                sprite.width = 192;
+                sprite.height = 192;
 
                 // Position decorations around the board edges
                 const angle = (idx / decorationImages.length) * Math.PI * 2;
-                sprite.x = boardW / 2 + Math.cos(angle) * (boardW / 2 + 30) - 32;
-                sprite.y = boardH / 2 + Math.sin(angle) * (boardH / 2 + 20) - 32;
+                sprite.x = boardW / 2 + Math.cos(angle) * (boardW / 2 + 30) - 96;
+                sprite.y = boardH / 2 + Math.sin(angle) * (boardH / 2 + 20) - 96;
 
                 decoContainer.addChild(sprite);
             } catch (e) {
@@ -569,15 +655,15 @@ export const PixiGameRenderer = () => {
                 }}>
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'center' }}>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#8B7355', fontWeight: 600 }}>ターン</div>
+                            <div style={{ fontSize: 11, color: '#8B7355', fontWeight: 600 }}>{isEn ? 'Turn' : 'ターン'}</div>
                             <div style={{ fontSize: 28, fontWeight: 900, color: '#4A3728' }}>{currentTurn}</div>
                         </div>
                         <div style={{ width: 1, height: 40, background: '#DAA520' }} />
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#8B7355', fontWeight: 600 }}>ゴールまで</div>
+                            <div style={{ fontSize: 11, color: '#8B7355', fontWeight: 600 }}>{isEn ? 'To Goal' : 'ゴールまで'}</div>
                             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
                                 <span style={{ fontSize: 28, fontWeight: 900, color: '#4A3728' }}>{remainingTiles}</span>
-                                <span style={{ fontSize: 12, color: '#8B7355', fontWeight: 600 }}>マス</span>
+                                <span style={{ fontSize: 12, color: '#8B7355', fontWeight: 600 }}>{isEn ? 'tiles' : 'マス'}</span>
                             </div>
                         </div>
                     </div>
@@ -607,8 +693,11 @@ export const PixiGameRenderer = () => {
                         lineHeight: 1.4,
                         backdropFilter: 'blur(4px)',
                     }}>
-                        現在地: {activePlayer ? (activePlayer.position || 0) + 1 : 1}マス目「{currentTile.title}」<br />
-                        効果: {summarizeTileAction(currentTile)}
+                        {isEn
+                            ? `Position: tile ${activePlayer ? (activePlayer.position || 0) + 1 : 1} "${currentTile.title}"`
+                            : `現在地: ${activePlayer ? (activePlayer.position || 0) + 1 : 1}マス目「${currentTile.title}」`}
+                        <br />
+                        {isEn ? 'Effect' : '効果'}: {summarizeTileAction(language, currentTile)}
                     </div>
                 )}
             </div>
@@ -637,7 +726,7 @@ export const PixiGameRenderer = () => {
                                     color: '#4A3728',
                                 }}>
                                     {player.displayName}
-                                    {isActive && <span style={{ marginLeft: 6, fontSize: 10, color: '#DAA520' }}>▶ 手番</span>}
+                                    {isActive && <span style={{ marginLeft: 6, fontSize: 10, color: '#DAA520' }}>{isEn ? '▶ TURN' : '▶ 手番'}</span>}
                                 </span>
                             </div>
                             <div style={{
@@ -713,10 +802,10 @@ export const PixiGameRenderer = () => {
                             transform: canRoll && !isRolling ? 'scale(1)' : 'scale(0.95)',
                         }}
                     >
-                        {isRolling ? '🎲 Rolling...' : '🎲 サイコロを振る'}
+                        {isRolling ? '🎲 Rolling...' : (isEn ? '🎲 Roll Dice' : '🎲 サイコロを振る')}
                     </button>
                     <p style={{ marginTop: 6, fontSize: 11, color: '#999' }}>
-                        Space / Enter キーでも振れます
+                        {isEn ? 'You can also roll with Space / Enter' : 'Space / Enter キーでも振れます'}
                     </p>
                 </div>
             )}
@@ -731,7 +820,7 @@ export const PixiGameRenderer = () => {
                     fontSize: 12,
                     backdropFilter: 'blur(4px)',
                 }}>
-                    🎨 デコレーション生成中...
+                    {isEn ? '🎨 Generating decorations...' : '🎨 デコレーション生成中...'}
                 </div>
             )}
 

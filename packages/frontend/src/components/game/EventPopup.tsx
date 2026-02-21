@@ -1,5 +1,6 @@
 import React from 'react';
 import type { BoardTile, PlayerProfile } from '../../store/useGameStore';
+import { useFlowStore } from '../../store/useFlowStore';
 
 interface EventPopupProps {
     tile: BoardTile;
@@ -8,6 +9,8 @@ interface EventPopupProps {
 }
 
 export const EventPopup: React.FC<EventPopupProps> = ({ tile, player, onClose }) => {
+    const { language } = useFlowStore();
+    const isEn = language === 'en';
     const isGood = tile.type === 'bonus' || tile.type === 'rescue';
     const isBad = tile.type === 'penalty';
 
@@ -23,12 +26,12 @@ export const EventPopup: React.FC<EventPopupProps> = ({ tile, player, onClose })
     const effectText = (() => {
         const e = tile.effect;
         switch (e.type) {
-            case 'advance': return `+${e.value} マス進む！`;
-            case 'retreat': return `-${e.value} マス戻る`;
-            case 'score': return `+${e.value} ポイント！`;
-            case 'swap': return 'プレイヤーと位置交換！';
-            case 'choice': return '選択イベント発生！';
-            default: return '効果なし';
+            case 'advance': return isEn ? `+${e.value} tiles forward!` : `+${e.value} マス進む！`;
+            case 'retreat': return isEn ? `-${e.value} tiles back` : `-${e.value} マス戻る`;
+            case 'score': return isEn ? `+${e.value} points!` : `+${e.value} ポイント！`;
+            case 'swap': return isEn ? 'Swap positions with another player!' : 'プレイヤーと位置交換！';
+            case 'choice': return isEn ? 'Choice event triggered!' : '選択イベント発生！';
+            default: return isEn ? 'No effect' : '効果なし';
         }
     })();
 
@@ -80,7 +83,7 @@ export const EventPopup: React.FC<EventPopupProps> = ({ tile, player, onClose })
                     marginBottom: 16,
                     fontWeight: 600,
                 }}>
-                    {player.displayName} のマス
+                    {isEn ? `${player.displayName}'s tile` : `${player.displayName} のマス`}
                 </div>
 
                 {/* Event description */}

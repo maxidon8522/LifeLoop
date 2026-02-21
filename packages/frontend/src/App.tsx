@@ -9,10 +9,11 @@ import { Screen05Ready } from './components/screens/Screen05Ready';
 import { PixiGameRenderer } from './components/game/PixiGameRenderer';
 
 function App() {
-  const { currentScreen } = useFlowStore();
+  const { currentScreen, language } = useFlowStore();
+  const isEn = language === "en";
 
   return (
-    <div className="w-full min-h-screen bg-gray-900 text-white font-sans selection:bg-blue-500/30">
+    <div className="w-full min-h-screen font-sans selection:bg-orange-300/30">
       {/* Basic Router-like switch based on global Zustand flow state */}
       {currentScreen === "TITLE" && <Screen00Title />}
       {currentScreen === "PREPARE" && <Screen01Prepare />}
@@ -41,7 +42,7 @@ function App() {
                 transition: 'all 0.2s ease',
               }}
             >
-              🏠 タイトルへ戻る
+              {isEn ? "🏠 Back to Title" : "🏠 タイトルへ戻る"}
             </button>
           </div>
         </div>
