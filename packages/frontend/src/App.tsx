@@ -7,6 +7,7 @@ import { Screen02Listening } from './components/screens/Screen02Listening';
 import { Screen03NextPrompt } from './components/screens/Screen03NextPrompt';
 import { Screen04Generating } from './components/screens/Screen04Generating';
 import { Screen05Ready } from './components/screens/Screen05Ready';
+import { PixiGameRenderer } from './components/game/PixiGameRenderer';
 
 function App() {
   const { currentScreen } = useFlowStore();
@@ -21,15 +22,17 @@ function App() {
       {currentScreen === "GENERATING" && <Screen04Generating />}
       {currentScreen === "READY" && <Screen05Ready />}
       {currentScreen === "PLAYING" && (
-        <div className="flex flex-col items-center justify-center min-h-screen text-center">
-          <h1 className="text-4xl text-emerald-400 font-bold mb-4">Game Loop Canvas Here</h1>
-          <p className="text-gray-400">Phase 3 の PixiJS または Three.js キャンバスがここにマウントされます。</p>
-          <button
-            onClick={() => useFlowStore.getState().resetFlow()}
-            className="mt-8 px-4 py-2 bg-red-800 hover:bg-red-700 rounded text-sm text-white transition-colors"
-          >
-            タイトルへ戻る (デバッグ用)
-          </button>
+        <div className="relative w-full h-screen overflow-hidden">
+          <PixiGameRenderer />
+
+          <div className="absolute top-4 right-4 z-20">
+            <button
+              onClick={() => useFlowStore.getState().resetFlow()}
+              className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded text-sm text-white transition-colors shadow-lg"
+            >
+              タイトルへ戻る (諦める)
+            </button>
+          </div>
         </div>
       )}
     </div>
