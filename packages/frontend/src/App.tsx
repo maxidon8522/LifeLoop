@@ -1,4 +1,3 @@
-import React from 'react';
 import { useFlowStore } from './store/useFlowStore';
 
 import { Screen00Title } from './components/screens/Screen00Title';

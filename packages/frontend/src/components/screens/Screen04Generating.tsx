@@ -1,6 +1,3 @@
-import React from 'react';
-import { useFlowStore } from '../../store/useFlowStore';
-
 export const Screen04Generating = () => {
     // Use length of players or any other stat from GameStore if desired
 

@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
 import { useGameStore } from '../../store/useGameStore';
+import { useAudioRecorder } from '../../lib/useAudioRecorder';
 
 export const Screen02Listening = () => {
     const { setScreen, currentPlayerIndex } = useFlowStore();
     const { addRawTranscript, setPlayerProfile } = useGameStore();
 
+    // 🚀 LIVE API への切り替えスイッチ (すぐに本番モードに移行できるように準備)
+    const [isLiveMode, setIsLiveMode] = useState(false);
+
     // Phase 1: Mock State
-    const [transcript, setTranscript] = useState("こんにちは。私はエンジニアで、休日はよくピザを食べながらアニメを見ています。");
+    const [mockTranscript] = useState("こんにちは。私はエンジニアで、休日はよくピザを食べながらアニメを見ています。");
+
+    // Phase 2: Live Audio Hook (繋ぎこみ用コード)
+    const { isRecording, startRecording, stopRecording, liveTranscription } = useAudioRecorder(
+        'ws://localhost:3001/live'
+    );
+
+    // 表示用トランスクリプト
+    const transcript = isLiveMode && liveTranscription ? liveTranscription : mockTranscript;
+
+    // Start recording automatically if switched to live mode
+    useEffect(() => {
+        if (isLiveMode && !isRecording) {
+            startRecording();
+        } else if (!isLiveMode && isRecording) {
+            stopRecording();
+        }
+    }, [isLiveMode, isRecording, startRecording, stopRecording]);
 
     const handleStop = async () => {
         try {
+            if (isLiveMode) {
+                stopRecording();
+            }
+
             // 1. Save raw transcript locally (for API Trigger)
             addRawTranscript(currentPlayerIndex, transcript);
 
@@ -43,11 +68,27 @@ export const Screen02Listening = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 max-w-2xl mx-auto w-full">
-            <div className="w-full flex items-center justify-between mb-8">
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 max-w-2xl mx-auto w-full relative">
+
+            {/* 開発時用トグルスイッチ */}
+            <div className="absolute top-4 right-4 bg-black/50 p-3 rounded-xl border border-white/20 flex flex-col items-end z-20">
+                <label className="flex items-center cursor-pointer mb-1">
+                    <span className="mr-3 text-sm font-bold text-gray-300">Live API 録音</span>
+                    <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isLiveMode}
+                        onChange={() => setIsLiveMode(!isLiveMode)}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+                <span className="text-xs text-blue-400">ONにすると本番の音声録音フックが作動します</span>
+            </div>
+
+            <div className="w-full flex items-center justify-between mb-8 mt-12">
                 <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                    Listening... (Player {currentPlayerIndex + 1})
+                    <span className={`w-3 h-3 rounded-full animate-pulse ${isLiveMode ? 'bg-red-500' : 'bg-gray-400'}`} />
+                    {isLiveMode ? "Listening... (Live)" : "MOCK (Player"} {currentPlayerIndex + 1})
                 </h2>
             </div>
 

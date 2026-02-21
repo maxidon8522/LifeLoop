@@ -12,6 +12,15 @@ export const PixiGameRenderer = () => {
     const [isRolling, setIsRolling] = useState(false);
     const [diceResult, setDiceResult] = useState<number | null>(null);
 
+    // PIXI References maintained across renders
+    const appRef = useRef<PIXI.Application | null>(null);
+    const tokensRef = useRef<PIXI.Graphics[]>([]);
+
+    const tileWidth = 60;
+    const padding = 20;
+    const startX = 100;
+    let startY = 300; // default, will be updated to innerHeight / 2
+
     const handleRollDice = () => {
         setIsRolling(true);
         setDiceResult(null);
@@ -66,10 +75,18 @@ export const PixiGameRenderer = () => {
         }
     };
 
+    // 1. Initialize PixiJS Application ONLY ONCE
     useEffect(() => {
         if (!containerRef.current) return;
+        if (appRef.current) return;
 
-        // 1. Initialize PixiJS application
+        // Clear existing canvases for React StrictMode
+        if (containerRef.current.innerHTML) {
+            containerRef.current.innerHTML = '';
+        }
+
+        startY = window.innerHeight / 2;
+
         const app = new PIXI.Application({
             width: window.innerWidth,
             height: window.innerHeight,
@@ -78,21 +95,17 @@ export const PixiGameRenderer = () => {
         });
 
         containerRef.current.appendChild(app.view as HTMLCanvasElement);
+        appRef.current = app;
 
-        // 2. Draw basic grid/tiles
-        const tilesCount = board?.tiles?.length || 10;
-        const tileWidth = 60;
-        const padding = 20;
-
-        const startX = 100;
-        const startY = window.innerHeight / 2;
+        // 2. Draw basic grid/tiles ONLY ONCE
+        const tiles = board?.tiles || [];
+        const tilesCount = tiles.length;
 
         for (let i = 0; i < tilesCount; i++) {
-            const tileData = board?.tiles[i];
+            const tileData = tiles[i];
 
             const gr = new PIXI.Graphics();
 
-            // Color mapping by type
             let color = 0x555555;
             if (tileData?.type === "bonus") color = 0x4ade80;
             if (tileData?.type === "penalty") color = 0xf87171;
@@ -102,7 +115,6 @@ export const PixiGameRenderer = () => {
             gr.drawRoundedRect(0, 0, tileWidth, tileWidth, 8);
             gr.endFill();
 
-            // Position linearly for prototype
             gr.x = startX + (i * (tileWidth + padding));
             gr.y = startY - (tileWidth / 2);
 
@@ -121,9 +133,33 @@ export const PixiGameRenderer = () => {
             app.stage.addChild(text);
         }
 
-        // 3. Draw Players (Tokens)
-        players.forEach((p, idx) => {
+        // Initialize empty player tokens
+        players.forEach(() => {
             const token = new PIXI.Graphics();
+            app.stage.addChild(token);
+            tokensRef.current.push(token);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            app.destroy(true, { children: true });
+            appRef.current = null;
+        };
+        // Disable exhaustive deps to ensure this runs completely independently of React state updates
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [board]); // Re-run only if the entire board structurally changes
+
+    // 2. Update token positions whenever players state changes
+    useEffect(() => {
+        if (!appRef.current) return;
+
+        startY = window.innerHeight / 2;
+
+        players.forEach((p, idx) => {
+            const token = tokensRef.current[idx];
+            if (!token) return;
+
+            token.clear();
             token.beginFill(idx === 0 ? 0x60a5fa : 0xf472b6); // Blue for P1, Pink for P2
             token.drawCircle(0, 0, 15);
 
@@ -138,15 +174,8 @@ export const PixiGameRenderer = () => {
             const pos = p.position || 0;
             token.x = startX + (pos * (tileWidth + padding)) + (tileWidth / 2);
             token.y = startY + (idx * 20) - 10;
-
-            app.stage.addChild(token);
         });
-
-        // Cleanup on unmount
-        return () => {
-            app.destroy(true, { children: true });
-        };
-    }, [board, players]);
+    }, [players, activePlayerIndex]);
 
     return (
         <div ref={containerRef} className="absolute inset-0 z-0">
@@ -168,8 +197,8 @@ export const PixiGameRenderer = () => {
                         onClick={handleRollDice}
                         disabled={isRolling}
                         className={`px-12 py-5 rounded-full font-bold text-2xl shadow-xl transition-all active:scale-95 ${isRolling
-                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 hover:scale-105"
+                                ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 hover:scale-105"
                             }`}
                     >
                         {isRolling ? "Rolling..." : "サイコロを振る"}

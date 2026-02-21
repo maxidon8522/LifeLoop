@@ -1,6 +1,18 @@
-import React from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
-import { useGameStore } from '../../store/useGameStore';
+import { useGameStore, type BoardSpec } from '../../store/useGameStore';
+import { fallbackBoard } from '../../lib/fallbackBoard';
+
+const isBoardSpec = (value: unknown): value is BoardSpec => {
+    if (!value || typeof value !== 'object') return false;
+    const board = value as Partial<BoardSpec>;
+    return Boolean(
+        board.world &&
+        board.world.theme &&
+        board.world.tone &&
+        Array.isArray(board.tiles) &&
+        board.tiles.length >= 8
+    );
+};
 
 export const Screen03NextPrompt = () => {
     const { setScreen, nextPlayer, currentPlayerIndex } = useFlowStore();
@@ -32,6 +44,9 @@ export const Screen03NextPrompt = () => {
             }
 
             const boardData = await response.json();
+            if (!isBoardSpec(boardData)) {
+                throw new Error("Invalid board payload");
+            }
             setBoard(boardData);
 
             // Also trigger Images (Fire & Forget for now, or await depending on Phase 3 implementation)
@@ -46,10 +61,7 @@ export const Screen03NextPrompt = () => {
         } catch (err) {
             console.error("Fallback due to error:", err);
             // P0 Failsafe Trigger
-            fallbackToTemplate({
-                world: { theme: "ハッカソンの危機", tone: "ドタバタ", artStylePrompt: "Error" },
-                tiles: [{ id: 1, title: "エラー復旧", type: "event", eventSeed: "Error", effect: { type: "advance", value: 1 }, iconPrompt: "" }]
-            });
+            fallbackToTemplate(fallbackBoard);
             setScreen("READY");
         }
     };

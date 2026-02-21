@@ -1,4 +1,3 @@
-import React from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
 
 export const Screen00Title = () => {
