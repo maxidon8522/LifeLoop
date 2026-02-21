@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import { generateProfile } from './controllers/profile';
+import { generateBoard } from './controllers/board';
+import { generateImages } from './controllers/images';
 import { setupLiveSocket } from './socket/live';
 
 // Load environment variables
@@ -27,44 +29,11 @@ app.get('/health', (req, res) => {
 // [API Trigger 1] Profile Generation (Real Text API)
 app.post('/api/generate/profile', generateProfile);
 
-// [API Trigger 2] Board Generation Mock
-app.post('/api/generate/board', (req, res) => {
-    const { players, sessionMinutes } = req.body;
-    console.log(`[Mock] Generating board for ${players?.length || 0} players (${sessionMinutes || 10} min)...`);
+// [API Trigger 2] Board Generation (Real Text API)
+app.post('/api/generate/board', generateBoard);
 
-    // Return mock response after a 2-second delay to simulate slow generation
-    setTimeout(() => {
-        res.json({
-            world: {
-                theme: "深夜のハッカソン会場",
-                tone: "コミカル"
-            },
-            tiles: [
-                {
-                    id: 1,
-                    title: "バグ発生",
-                    type: "event",
-                    effect: { type: "retreat", value: 1 },
-                    eventText: "謎のエラーで作業が1ターン遅れた！"
-                },
-                {
-                    id: 2,
-                    title: "エナジードリンク",
-                    type: "event",
-                    effect: { type: "advance", value: 2 },
-                    eventText: "カフェイン摂取で一気に2マス進む！"
-                },
-                {
-                    id: 3,
-                    title: "デモ開始",
-                    type: "goal",
-                    effect: { type: "none", value: 0 },
-                    eventText: "なんとかデモに間に合った！ゴール！"
-                }
-            ]
-        });
-    }, 2000);
-});
+// [API Trigger 3] Image Generation (Nano Banana)
+app.post('/api/generate/images', generateImages);
 
 // Start server
 server.listen(PORT, () => {
