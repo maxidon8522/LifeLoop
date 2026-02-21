@@ -1,11 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import http from 'http';
+import { generateProfile } from './controllers/profile';
+import { setupLiveSocket } from './socket/live';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+setupLiveSocket(server);
+
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -18,24 +24,8 @@ app.get('/health', (req, res) => {
 });
 
 // Phase 1 Mock APIs
-// [API Trigger 1] Profile Generation Mock
-app.post('/api/generate/profile', (req, res) => {
-    const { playerIndex, transcript } = req.body;
-    console.log(`[Mock] Generating profile for player ${playerIndex}...`);
-
-    // Return mock response after a short delay to simulate API
-    setTimeout(() => {
-        res.json({
-            playerIndex: playerIndex ?? 0,
-            profile: {
-                displayName: `Player ${playerIndex !== undefined ? playerIndex + 1 : 1}`,
-                tags: ["ハッカソン", "エンジニア", "深夜コーディング"],
-                lifestyle: ["夜型"],
-                attributes: ["テック"]
-            }
-        });
-    }, 1000);
-});
+// [API Trigger 1] Profile Generation (Real Text API)
+app.post('/api/generate/profile', generateProfile);
 
 // [API Trigger 2] Board Generation Mock
 app.post('/api/generate/board', (req, res) => {
@@ -77,6 +67,6 @@ app.post('/api/generate/board', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+server.listen(PORT, () => {
+    console.log(`Server (HTTP + WS) is running on http://localhost:${PORT}`);
 });
